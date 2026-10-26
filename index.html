@@ -7,199 +7,842 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cockpit">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#03060d">
 <title>Cockpit</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/saira-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-  :root {
-    --bg: #000;
-    --panel: #121212;
-    --line: #262626;
-    --text: #f2f2f2;
-    --dim: #9a9a9a;
-    --faint: #5c5c5c;
-    --maps-bg: #0e2a1b;
-    --maps-line: #1f5a3a;
-    --maps-fg: #6fd39b;
-    --gap: 12px;
+  @font-face {
+    font-family: "Saira"; font-weight: 100 900; font-stretch: 50% 125%; font-display: swap;
+    src: url("fonts/saira-latin-standard-normal.woff2") format("woff2");
   }
+  :root {
+    --abyss: #03060d;
+    --glass-top: rgba(150, 180, 255, 0.11);
+    --glass-bot: rgba(150, 180, 255, 0.04);
+    --glass-edge: rgba(165, 195, 255, 0.16);
+    --ice: #eaf1ff;
+    --soft: #c3d0ea;
+    --steel: #8a9bbe;
+    --volt: #4c8dff;
+    --halo: #7db1ff;
+    --gold: #ffd08a;
+    --warn: #ffb35c;
+    --font: "Saira", -apple-system, system-ui, "SF Arabic", "Geeza Pro", sans-serif;
+  }
+  [hidden] { display: none !important; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; height: 100%; background: var(--bg); color: var(--text);
-    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
-    overflow: hidden; overscroll-behavior: none;
+    margin: 0; height: 100%; color: var(--ice); font-family: var(--font); overflow: hidden;
+    overscroll-behavior: none; -webkit-font-smoothing: antialiased;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    background:
+      radial-gradient(440px 300px at 19% 33%, rgba(43, 98, 214, 0.30), transparent 70%),
+      radial-gradient(540px 280px at 84% 104%, rgba(84, 70, 214, 0.20), transparent 70%),
+      var(--abyss);
   }
+  button { font: inherit; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+  svg { display: block; }
+
   .app {
     height: 100%;
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: var(--gap);
+    display: grid; grid-template-columns: minmax(0, 44fr) minmax(0, 56fr); gap: 20px;
     padding:
-      max(env(safe-area-inset-top), 14px)
-      max(env(safe-area-inset-right), 14px)
+      max(env(safe-area-inset-top), 16px)
+      max(env(safe-area-inset-right), 16px)
       max(env(safe-area-inset-bottom), 14px)
-      max(env(safe-area-inset-left), 14px);
+      max(env(safe-area-inset-left), 16px);
+    animation: boot .7s ease-out both;
   }
-  .panel {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 22px;
-    min-width: 0; min-height: 0;
-  }
-  .left {
-    display: flex; flex-direction: column; justify-content: center;
-    padding: 0 6%;
-  }
+  @keyframes boot { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ---------- Left: greeting, clock, weather ---------- */
+  .cluster { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .greet { margin: 0; font-size: 17px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .clock {
-    font-size: min(24vh, 13vw); font-weight: 600; line-height: 0.95;
-    letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+    margin: 2px 0 0 -4px; font-weight: 200; font-stretch: 110%;
+    font-size: clamp(60px, 25.5vh, 112px); line-height: 0.9; letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums; text-shadow: 0 0 28px rgba(76, 141, 255, 0.38);
+    animation: power 1.8s ease-out both;
   }
-  .date { font-size: min(5.2vh, 3vw); color: var(--dim); margin-top: 1.6vh; }
-  .meta {
-    display: flex; align-items: center; gap: 22px; margin-top: 4.5vh;
-    font-size: min(4.6vh, 2.6vw); color: var(--dim);
+  @keyframes power {
+    from { text-shadow: 0 0 0 rgba(76, 141, 255, 0); color: rgba(234, 241, 255, 0.15); }
+    to { text-shadow: 0 0 28px rgba(76, 141, 255, 0.38); color: var(--ice); }
   }
-  .trip { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
-  .trip b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .wake { display: flex; align-items: center; gap: 8px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; }
-  .wake.on .dot { background: #4cd07d; }
-  .wake.off { color: #e0a24a; }
-  .wake.off .dot { background: #e0a24a; }
-  .grid {
-    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
-    gap: var(--gap); min-height: 0;
+  .date { margin: 10px 0 0; font-size: 16px; color: var(--steel); }
+  .wx { display: flex; align-items: center; gap: 12px; margin-top: 20px; min-height: 40px; }
+  .wx-icon { width: 36px; height: 36px; flex: none; }
+  .wx-t { font-size: 36px; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .wx-t .deg { font-size: 0.5em; vertical-align: 0.8em; margin-left: -2px; font-weight: 400; }
+  .wx-d { font-size: 14px; color: var(--steel); line-height: 1.3; min-width: 0; }
+  .wx-d span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hint { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 15px; color: var(--soft); min-width: 0; }
+  .hint svg { width: 18px; height: 18px; flex: none; color: var(--gold); }
+  .hint.alert { color: var(--warn); }
+  .hint.alert svg { color: var(--warn); }
+  .hint span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .status { margin-top: auto; display: flex; gap: 8px; }
+  .chip {
+    height: 32px; padding: 0 12px; border-radius: 16px; display: inline-flex; align-items: center; gap: 7px;
+    font-size: 14px; color: var(--steel); background: rgba(150, 180, 255, 0.075); border: 1px solid var(--glass-edge);
+    white-space: nowrap; -webkit-touch-callout: none;
   }
-  .tile {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 1.6vh; text-decoration: none; color: var(--text);
-    font-size: min(5vh, 2.8vw); font-weight: 500;
-    transition: transform .08s ease, background .08s ease;
+  .chip b { color: var(--ice); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--halo); box-shadow: 0 0 8px var(--volt); flex: none; }
+  .chip.off { color: var(--gold); }
+  .chip.off .dot { background: var(--gold); box-shadow: 0 0 8px rgba(255, 208, 138, 0.6); }
+  .chip.na .dot { background: var(--steel); box-shadow: none; }
+  .chip.icon { width: 32px; padding: 0; justify-content: center; }
+  .chip svg { width: 17px; height: 17px; }
+  .chip.pressing { border-color: var(--volt); }
+
+  /* ---------- Right: places, people, apps ---------- */
+  .controls { display: grid; grid-template-rows: minmax(0, 1fr) 54px 66px; gap: 10px; min-width: 0; min-height: 0; }
+  .glass {
+    background: linear-gradient(180deg, var(--glass-top), var(--glass-bot));
+    border: 1px solid var(--glass-edge); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    -webkit-touch-callout: none; transition: transform .1s ease, background .1s ease;
   }
-  .tile:active { transform: scale(0.96); background: #1d1d1d; }
-  .tile svg { width: min(13vh, 7vw); height: min(13vh, 7vw); }
-  .tile.maps { background: var(--maps-bg); border-color: var(--maps-line); color: #d4f2e2; }
-  .tile.maps:active { background: #133523; }
-  .rotate {
-    display: none; position: fixed; inset: 0; background: var(--bg);
-    align-items: center; justify-content: center; text-align: center;
-    color: var(--dim); font-size: 18px; padding: 24px;
+  .glass:active, .glass.pressing {
+    transform: scale(0.97);
+    background: linear-gradient(180deg, rgba(150, 180, 255, 0.22), rgba(150, 180, 255, 0.09));
   }
+  .places { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-height: 0; }
+  .tile { border-radius: 22px; padding: 14px 14px 13px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 0; }
+  .ring {
+    width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none;
+    border: 1.5px solid rgba(76, 141, 255, 0.65); color: var(--halo); box-shadow: 0 0 16px rgba(76, 141, 255, 0.25);
+    font-size: 19px; font-weight: 500;
+  }
+  .ring svg { width: 21px; height: 21px; }
+  .tile .name { display: block; font-size: 18px; font-weight: 500; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .tile .act { display: block; font-size: 14px; color: var(--halo); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile { position: relative; }
+  .stamp { position: absolute; top: 15px; right: 15px; font-size: 14px; color: var(--steel); font-variant-numeric: tabular-nums; }
+  .tile.idle .ring { border-color: rgba(138, 155, 190, 0.45); color: var(--steel); box-shadow: none; }
+  .tile.idle .act { color: var(--steel); }
+  .tile.busy .act { color: var(--soft); }
+  .tile.failed .act { color: var(--warn); }
+
+  .people { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .person {
+    border-radius: 27px; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 8px;
+    min-width: 0; text-align: left; cursor: pointer;
+  }
+  .avatar {
+    width: 37px; height: 37px; border-radius: 50%; display: grid; place-items: center; flex: none;
+    font-size: 17px; font-weight: 600; color: #fff; background: var(--tint, #2f6fe0);
+  }
+  .person .pname { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .person.add { color: var(--steel); }
+  .person .padd { margin-left: auto; font-size: 14px; color: var(--dim, #5d6b88); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .person.add .avatar { background: transparent; border: 1.5px dashed rgba(138, 155, 190, 0.55); color: var(--steel); font-weight: 400; }
+
+  .rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .app-btn { border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; color: var(--steel); }
+  .app-btn svg { width: 24px; height: 24px; color: var(--ice); }
+
+  /* ---------- Sheets ---------- */
+  .sheet-wrap {
+    position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: rgba(2, 4, 10, 0.74);
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: max(env(safe-area-inset-top), 10px) 16px 16px;
+  }
+  .sheet {
+    width: min(560px, 100%); border-radius: 26px; padding: 14px 18px 16px; display: grid; gap: 10px;
+    background: linear-gradient(180deg, #121b30, #0a1020); border: 1px solid var(--glass-edge);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); -webkit-user-select: text; user-select: text;
+  }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sheet h2 { margin: 0; font-size: 21px; font-weight: 500; }
+  .field { display: grid; gap: 5px; font-size: 14px; color: var(--steel); }
+  .field input {
+    font: 500 17px var(--font); color: var(--ice); width: 100%; outline: none;
+    background: rgba(3, 6, 13, 0.85); border: 1px solid var(--glass-edge); border-radius: 14px; padding: 10px 13px;
+  }
+  .field input:focus { border-color: var(--volt); }
+  .field input::placeholder { color: #56617a; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .note { font-size: 14px; color: var(--steel); }
+  .note.ok { color: #86e3ad; }
+  .note.err { color: var(--warn); }
+  .btn {
+    font: 500 16px var(--font); color: var(--ice); cursor: pointer;
+    background: rgba(150, 180, 255, 0.1); border: 1px solid var(--glass-edge); border-radius: 14px;
+    padding: 11px 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn svg { width: 19px; height: 19px; }
+  .btn:active { background: rgba(150, 180, 255, 0.2); }
+  .btn.primary { background: var(--volt); border-color: var(--volt); color: #fff; }
+  .btn.primary:active { background: #3b79e6; }
+  .btn.big { padding: 17px 16px; font-size: 19px; border-radius: 18px; }
+  .btn.big svg { width: 23px; height: 23px; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .link { background: none; border: 0; font: 500 16px var(--font); color: var(--steel); padding: 8px 4px; cursor: pointer; }
+  .link.danger { color: #ff9a9a; }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .who { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .who .avatar { width: 50px; height: 50px; font-size: 22px; }
+  .who b { display: block; font-size: 22px; font-weight: 500; }
+  .who span { font-size: 14px; color: var(--steel); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: embed; }
+
+  /* ---------- Portrait: parked-car finder ---------- */
+  .portrait {
+    display: none; position: fixed; inset: 0; flex-direction: column; align-items: center; justify-content: center;
+    gap: 24px; padding: 32px 24px; text-align: center;
+  }
+  .p-card { width: min(340px, 100%); border-radius: 28px; padding: 26px 22px 22px; display: grid; gap: 6px; justify-items: center; }
+  .p-card .ring { width: 66px; height: 66px; font-size: 28px; margin-bottom: 8px; }
+  .p-title { font-size: 26px; font-weight: 500; }
+  .p-meta { font-size: 15px; color: var(--steel); }
+  .p-card .btn { margin-top: 14px; width: 100%; }
+  .p-note { display: flex; align-items: center; gap: 10px; font-size: 16px; color: var(--steel); }
+  .p-note svg { width: 26px; height: 26px; color: var(--ice); }
   @media (orientation: portrait) {
-    .rotate { display: flex; }
     .app { display: none; }
+    .portrait { display: flex; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app, .clock { animation: none; }
+    .glass { transition: none; }
   }
 </style>
 </head>
 <body>
+
 <main class="app" id="app">
-  <section class="panel left">
+  <section class="cluster" aria-label="Time and weather">
+    <p class="greet" id="greet">Good evening</p>
     <div class="clock" id="clock">--:--</div>
-    <div class="date" id="date"></div>
-    <div class="meta">
-      <div class="trip" id="trip" title="Long-press to reset">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M10 2h4"/></svg>
-        Trip <b id="tripTime">0:00</b>
-      </div>
-      <div class="wake" id="wake"><span class="dot"></span><span id="wakeText">Screen</span></div>
+    <p class="date" id="date"></p>
+    <div class="wx" id="wx">
+      <svg class="wx-icon" id="wxIcon" viewBox="0 0 48 48" aria-hidden="true"></svg>
+      <div class="wx-t" id="wxTemp">--<span class="deg">°</span></div>
+      <div class="wx-d"><span id="wxDesc">Getting weather…</span><span id="wxMore"></span></div>
+    </div>
+    <p class="hint" id="hint" hidden><svg id="hintIcon" viewBox="0 0 24 24" aria-hidden="true"></svg><span id="hintText"></span></p>
+    <div class="status">
+      <button class="chip" id="trip" aria-label="Trip time. Hold to reset.">Trip <b id="tripTime">0:00</b></button>
+      <button class="chip" id="lamp"><span class="dot"></span><span id="lampText">Screen on</span></button>
+      <button class="chip icon" id="openSettings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
     </div>
   </section>
 
-  <nav class="grid">
-    <a class="panel tile maps" href="comgooglemaps://" aria-label="Open Google Maps">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#6fd39b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-      Maps
-    </a>
-    <a class="panel tile" href="mobilephone://" aria-label="Open Phone">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#7fb2ff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>
-      Phone
-    </a>
-    <a class="panel tile" href="whatsapp://" aria-label="Open WhatsApp">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#5fd38a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20l1.3-3.9A8.5 8.5 0 1 1 7.9 19.7z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/></svg>
-      WhatsApp
-    </a>
-    <a class="panel tile" href="youtubemusic://" aria-label="Open YouTube Music">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#ff7a7a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z"/></svg>
-      YT Music
-    </a>
-  </nav>
+  <section class="controls">
+    <nav class="places" aria-label="Places">
+      <a class="glass tile place" data-slot="0" href="#">
+        <span class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V5.5A1.5 1.5 0 0 1 6.5 4h7A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h2.5A1.5 1.5 0 0 1 19 11.5V21"/><path d="M3 21h18"/><path d="M8.5 8h3M8.5 11.5h3M8.5 15h3"/></svg></span>
+        <span><span class="name" dir="auto"></span><span class="act"></span></span>
+      </a>
+      <a class="glass tile place" data-slot="1" href="#">
+        <span class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8.5 7V5.5A1.5 1.5 0 0 1 10 4h4a1.5 1.5 0 0 1 1.5 1.5V7"/><path d="M3 12.5h18"/></svg></span>
+        <span><span class="name" dir="auto"></span><span class="act"></span></span>
+      </a>
+      <a class="glass tile idle" id="park" href="#">
+        <span class="stamp" id="parkStamp" hidden></span>
+        <span class="ring">P</span>
+        <span><span class="name">Parked car</span><span class="act" id="parkAct">Save spot</span></span>
+      </a>
+    </nav>
+
+    <nav class="people" id="people" aria-label="Favourites"></nav>
+
+    <nav class="rail" aria-label="Apps">
+      <a class="glass app-btn" href="comgooglemaps://" aria-label="Open Google Maps">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Maps</a>
+      <a class="glass app-btn" href="mobilephone://" aria-label="Open Phone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Phone</a>
+      <a class="glass app-btn" href="whatsapp://" aria-label="Open WhatsApp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5z"/><path d="M9 10.5h6M9 13.5h4"/></svg>WhatsApp</a>
+      <a class="glass app-btn" href="youtubemusic://" aria-label="Open YouTube Music">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>YT Music</a>
+    </nav>
+  </section>
 </main>
 
-<div class="rotate">Turn your phone sideways to use Cockpit</div>
+<!-- Portrait: find the parked car -->
+<div class="portrait">
+  <div class="glass p-card" id="pCard" hidden>
+    <span class="ring">P</span>
+    <div class="p-title">Your car</div>
+    <div class="p-meta" id="pMeta"></div>
+    <a class="btn big primary" id="pWalk" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4.5" r="1.8"/><path d="M9.5 21l2-6 2.5 2v4"/><path d="M8 11.5 10 8l4 1 2 3h2.5"/><path d="M11.5 15l1-6"/></svg>Walk back</a>
+  </div>
+  <p class="p-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M20.5 9.5a7 7 0 0 1 0 5M3.5 9.5a7 7 0 0 0 0 5"/></svg>
+    Turn your phone sideways for Cockpit
+  </p>
+</div>
+
+<!-- Place editor -->
+<div class="sheet-wrap" id="placeSheet" hidden>
+  <form class="sheet" id="placeForm" novalidate>
+    <div class="sheet-head"><h2 id="placeTitle">Set up place</h2><button type="button" class="link" data-close>Cancel</button></div>
+    <label class="field">Name<input id="placeName" maxlength="18" autocomplete="off" dir="auto"></label>
+    <div class="row">
+      <button type="button" class="btn" id="placeHere">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5"/></svg>
+        Use my current location</button>
+      <span class="note" id="placeNote">Use this while you're parked there.</span>
+    </div>
+    <label class="field">Or type an address or place name<input id="placeAddr" placeholder="King Fahd Rd, Dammam" autocomplete="off" dir="auto"></label>
+    <div class="foot">
+      <button type="button" class="link danger" id="placeRemove">Remove place</button>
+      <span class="note" id="placeTip">Hold a place to change it later.</span>
+      <button type="submit" class="btn primary">Save place</button>
+    </div>
+  </form>
+</div>
+
+<!-- Favourite: call or WhatsApp -->
+<div class="sheet-wrap" id="personSheet" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="who"><span class="avatar" id="pvAvatar"></span><div><b id="pvName" dir="auto"></b><span id="pvPhone"></span></div></div>
+      <button type="button" class="link" data-close>Close</button>
+    </div>
+    <div class="duo">
+      <a class="btn big primary" id="pvCall" href="#">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 3.5h2.7c.5 0 .9.3 1 .8l1 3.6c.1.4 0 .8-.3 1.1l-1.7 1.4a12 12 0 0 0 4.4 4.4l1.4-1.7c.3-.3.7-.4 1.1-.3l3.6 1c.5.1.8.5.8 1v2.7c0 1.2-1 2.1-2.2 2A17.5 17.5 0 0 1 4.6 5.7c-.1-1.2.8-2.2 2-2.2z"/></svg>Call</a>
+      <a class="btn big" id="pvWa" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5z"/><path d="M9 10.5h6M9 13.5h4"/></svg>WhatsApp</a>
+    </div>
+    <div class="foot"><button type="button" class="link" id="pvEdit">Edit favourite</button></div>
+  </div>
+</div>
+
+<!-- Favourite editor -->
+<div class="sheet-wrap" id="personEdit" hidden>
+  <form class="sheet" id="personForm" novalidate>
+    <div class="sheet-head"><h2 id="peTitle">Add favourite</h2><button type="button" class="link" data-close>Cancel</button></div>
+    <label class="field">Name<input id="peName" maxlength="20" autocomplete="off" dir="auto" placeholder="Name"></label>
+    <label class="field">Mobile number<input id="pePhone" type="tel" inputmode="tel" autocomplete="off" placeholder="05X XXX XXXX"></label>
+    <span class="note" id="peNote">Saudi numbers starting with 05 work as typed.</span>
+    <div class="foot">
+      <button type="button" class="link danger" id="peRemove">Remove</button>
+      <button type="submit" class="btn primary">Save favourite</button>
+    </div>
+  </form>
+</div>
+
+<!-- Parked car options -->
+<div class="sheet-wrap" id="parkSheet" hidden>
+  <div class="sheet">
+    <div class="sheet-head"><h2>Parked car</h2><button type="button" class="link" data-close>Close</button></div>
+    <span class="note" id="parkNote"></span>
+    <div class="duo">
+      <a class="btn big primary" id="parkWalk" href="#">Walk back</a>
+      <button type="button" class="btn big" id="parkHere">Save spot here</button>
+    </div>
+    <div class="foot"><button type="button" class="link danger" id="parkClear">Clear spot</button></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="sheet-wrap" id="settingsSheet" hidden>
+  <form class="sheet" id="settingsForm" novalidate>
+    <div class="sheet-head"><h2>Settings</h2><button type="button" class="link" data-close>Cancel</button></div>
+    <label class="field">Name for the greeting<input id="setName" maxlength="20" autocomplete="off" dir="auto"></label>
+    <div class="row">
+      <button type="button" class="btn" id="wxNow">Update weather now</button>
+      <span class="note" id="wxNote"></span>
+    </div>
+    <span class="note">Hold a place or a favourite to edit it.</span>
+    <div class="foot"><span></span><button type="submit" class="btn primary">Save</button></div>
+  </form>
+</div>
 
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
-
-  /* ---------- Clock (24-hour, English date) ---------- */
-  const dateFmt = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-  function tickClock() {
-    const d = new Date();
-    $('clock').textContent =
-      String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-    $('date').textContent = dateFmt.format(d);
-  }
-
-  /* ---------- Trip timer (survives app switching / reloads) ---------- */
-  const NEW_TRIP_GAP_MS = 30 * 60 * 1000; // away > 30 min = new trip
   const store = {
-    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    get(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
-  let tripStart = Number(store.get('tripStart')) || 0;
-  const lastSeen = Number(store.get('lastSeen')) || 0;
-  if (!tripStart || Date.now() - lastSeen > NEW_TRIP_GAP_MS) resetTrip();
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const hhmm = (d) => pad2(d.getHours()) + ':' + pad2(d.getMinutes());
 
-  function resetTrip() {
-    tripStart = Date.now();
-    store.set('tripStart', String(tripStart));
-    tickTrip();
+  /* ---------- Sheets ---------- */
+  function openSheet(id) { document.querySelectorAll('.sheet-wrap').forEach((s) => { s.hidden = s.id !== id; }); }
+  function closeSheets() {
+    document.querySelectorAll('.sheet-wrap').forEach((s) => { s.hidden = true; });
+    if (document.activeElement) document.activeElement.blur();
   }
-  function tickTrip() {
-    const mins = Math.max(0, Math.floor((Date.now() - tripStart) / 60000));
-    $('tripTime').textContent = Math.floor(mins / 60) + ':' + String(mins % 60).padStart(2, '0');
-    store.set('lastSeen', String(Date.now()));
-  }
-  // Long-press the trip timer (0.8 s) to reset it
-  let pressTimer = null;
-  $('trip').addEventListener('touchstart', () => {
-    pressTimer = setTimeout(() => { resetTrip(); if (navigator.vibrate) navigator.vibrate(30); }, 800);
-  }, { passive: true });
-  ['touchend', 'touchcancel', 'touchmove'].forEach(ev =>
-    $('trip').addEventListener(ev, () => clearTimeout(pressTimer), { passive: true }));
+  document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeSheets));
+  document.querySelectorAll('.sheet-wrap').forEach((w) => w.addEventListener('click', (e) => { if (e.target === w) closeSheets(); }));
 
-  /* ---------- Keep screen awake (Screen Wake Lock API) ---------- */
-  let lock = null;
-  function showWake(state) {
-    const el = $('wake'), txt = $('wakeText');
-    el.className = 'wake ' + state;
-    txt.textContent = state === 'on' ? 'Screen on'
-                    : state === 'off' ? 'Tap to keep screen on'
-                    : 'Screen lock not supported';
+  /* ---------- Long-press helper ---------- */
+  function onHold(el, ms, fn) {
+    let timer = null, x = 0, y = 0;
+    const cancel = () => { clearTimeout(timer); timer = null; el.classList.remove('pressing'); };
+    el.addEventListener('pointerdown', (e) => {
+      x = e.clientX; y = e.clientY; el.held = false; el.classList.add('pressing');
+      timer = setTimeout(() => { timer = null; el.held = true; el.classList.remove('pressing'); fn(); }, ms);
+    });
+    el.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - x, e.clientY - y) > 12) cancel(); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => el.addEventListener(ev, cancel));
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
   }
-  async function requestLock() {
-    if (!('wakeLock' in navigator)) { showWake('na'); return; }
-    if (lock && !lock.released) { showWake('on'); return; }
+  const swallowIfHeld = (el, e) => { if (el.held) { e.preventDefault(); el.held = false; return true; } return false; };
+
+  /* ---------- Location ---------- */
+  function locate(high, maxAge) {
+    return new Promise((resolve, reject) => {
+      if (!('geolocation' in navigator)) { reject({ code: 2 }); return; }
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+        reject,
+        { enableHighAccuracy: !!high, timeout: high ? 15000 : 10000, maximumAge: maxAge || 0 }
+      );
+    });
+  }
+  const locError = (err) => err && err.code === 1
+    ? 'Location is blocked for Cockpit. Allow it in Settings.'
+    : "Couldn't get your location. Try again.";
+
+  /* ---------- Clock, date and greeting ---------- */
+  const dateFmt = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  let userName = store.get('cockpit.name', 'Mustafa');
+  let lastKey = '';
+  function greeting(d) {
+    const h = d.getHours();
+    const part = h >= 4 && h < 12 ? 'Good morning' : h >= 12 && h < 17 ? 'Good afternoon' : 'Good evening';
+    return userName ? part + ', ' + userName : part;
+  }
+  function tick(force) {
+    const d = new Date();
+    const key = d.getHours() + ':' + d.getMinutes();
+    if (key === lastKey && !force) return;
+    lastKey = key;
+    $('clock').textContent = hhmm(d);
+    $('date').textContent = dateFmt.format(d);
+    $('greet').textContent = greeting(d);
+    renderHint();
+    if (wx && Date.now() - wx.at > 20 * 60000 && document.visibilityState === 'visible') refreshWeather();
+  }
+
+  /* ---------- Weather (Open-Meteo, free, no account) ---------- */
+  const FALLBACK = { lat: 26.56, lon: 50.01, label: 'Al Qatif' };
+  let wx = store.get('cockpit.wx.v1', null);
+  let wxBusy = false, wxFailed = false;
+
+  const I = {
+    sun: '<circle cx="24" cy="24" r="8.5" fill="none" stroke="#ffd08a" stroke-width="2.6"/><g stroke="#ffd08a" stroke-width="2.6" stroke-linecap="round"><path d="M24 5.5v5M24 37.5v5M5.5 24h5M37.5 24h5M10.9 10.9l3.5 3.5M33.6 33.6l3.5 3.5M10.9 37.1l3.5-3.5M33.6 14.4l3.5-3.5"/></g>',
+    moon: '<path d="M30.5 33.5A13 13 0 0 1 20 9.6a13.5 13.5 0 1 0 17.6 17.9 13 13 0 0 1-7.1 6z" fill="none" stroke="#c3d0ea" stroke-width="2.6" stroke-linejoin="round"/>',
+    cloud: '<path d="M15 37h19.5a7.5 7.5 0 0 0 .6-15 11 11 0 0 0-21.2 2.4A6.4 6.4 0 0 0 15 37z" fill="none" stroke="#c3d0ea" stroke-width="2.6" stroke-linejoin="round"/>',
+    sunCloud: '<g stroke="#ffd08a" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="17" cy="17" r="6"/><path d="M17 5v3M5 17h3M8.5 8.5l2.1 2.1M25.5 8.5l-2.1 2.1"/></g><path d="M18 39h16.5a6.5 6.5 0 0 0 .5-13 9.6 9.6 0 0 0-18.4 2A5.5 5.5 0 0 0 18 39z" fill="#03060d" stroke="#c3d0ea" stroke-width="2.6" stroke-linejoin="round"/>',
+    moonCloud: '<path d="M24 22.5A9 9 0 0 1 16.8 6a9.4 9.4 0 1 0 12.2 12.5" fill="none" stroke="#c3d0ea" stroke-width="2.4" stroke-linecap="round"/><path d="M18 39h16.5a6.5 6.5 0 0 0 .5-13 9.6 9.6 0 0 0-18.4 2A5.5 5.5 0 0 0 18 39z" fill="#03060d" stroke="#c3d0ea" stroke-width="2.6" stroke-linejoin="round"/>',
+    fog: '<g stroke="#c3d0ea" stroke-width="2.6" stroke-linecap="round"><path d="M8 17h32M12 24h28M8 31h26M14 38h20"/></g>',
+    rain: '<path d="M15 31h19.5a7.5 7.5 0 0 0 .6-15 11 11 0 0 0-21.2 2.4A6.4 6.4 0 0 0 15 31z" fill="none" stroke="#c3d0ea" stroke-width="2.6" stroke-linejoin="round"/><g stroke="#7db1ff" stroke-width="2.6" stroke-linecap="round"><path d="M17 36l-2 5M25 36l-2 5M33 36l-2 5"/></g>',
+    storm: '<path d="M15 30h19.5a7.5 7.5 0 0 0 .6-15 11 11 0 0 0-21.2 2.4A6.4 6.4 0 0 0 15 30z" fill="none" stroke="#c3d0ea" stroke-width="2.6" stroke-linejoin="round"/><path d="M25 31l-5 8h6l-3 7" fill="none" stroke="#ffd08a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    snow: '<path d="M15 31h19.5a7.5 7.5 0 0 0 .6-15 11 11 0 0 0-21.2 2.4A6.4 6.4 0 0 0 15 31z" fill="none" stroke="#c3d0ea" stroke-width="2.6" stroke-linejoin="round"/><g fill="#eaf1ff"><circle cx="17" cy="38" r="1.8"/><circle cx="25" cy="40" r="1.8"/><circle cx="33" cy="38" r="1.8"/></g>',
+    dust: '<g fill="none" stroke="#ffb35c" stroke-width="2.6" stroke-linecap="round"><path d="M6 17h22a5 5 0 1 0-5-5"/><path d="M6 25h32a5 5 0 1 1-5 5"/><path d="M6 33h16"/></g>',
+    none: '<circle cx="24" cy="24" r="9" fill="none" stroke="#5d6b88" stroke-width="2.4" stroke-dasharray="3 4"/>'
+  };
+  const HI = {
+    sunset: '<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 3.5v5M9.5 6.5 12 9l2.5-2.5"/></g>',
+    sunrise: '<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 9V4M9.5 6 12 3.5 14.5 6"/></g>',
+    rain: '<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>',
+    dust: '<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 9h11a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 13h16a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 17h8"/></g>',
+    heat: '<g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5V5a2 2 0 0 1 4 0v8.5a4 4 0 1 1-4 0z"/><path d="M12 17v-5"/></g>'
+  };
+
+  function describe(code, day) {
+    if (code === 0) return [day ? 'Sunny' : 'Clear', day ? 'sun' : 'moon'];
+    if (code === 1) return ['Mostly clear', day ? 'sun' : 'moon'];
+    if (code === 2) return ['Partly cloudy', day ? 'sunCloud' : 'moonCloud'];
+    if (code === 3) return ['Cloudy', 'cloud'];
+    if (code === 45 || code === 48) return ['Fog', 'fog'];
+    if (code >= 51 && code <= 57) return ['Drizzle', 'rain'];
+    if (code >= 61 && code <= 67) return ['Rain', 'rain'];
+    if (code >= 71 && code <= 77) return ['Snow', 'snow'];
+    if (code >= 80 && code <= 82) return ['Showers', 'rain'];
+    if (code === 85 || code === 86) return ['Snow showers', 'snow'];
+    if (code >= 95) return ['Thunderstorm', 'storm'];
+    return ['', 'cloud'];
+  }
+  const localISODate = (d) => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  const DUSTY = 200; // µg/m³ near the ground: visibly dusty air
+
+  function slim(f, a) {
+    return {
+      cur: {
+        t: f.current.temperature_2m, feels: f.current.apparent_temperature,
+        day: f.current.is_day === 1, code: f.current.weather_code
+      },
+      daily: f.daily.time.map((t, i) => ({
+        date: t, max: f.daily.temperature_2m_max[i], min: f.daily.temperature_2m_min[i],
+        rise: f.daily.sunrise[i], set: f.daily.sunset[i]
+      })),
+      rain: f.hourly.time.map((t, i) => [t, f.hourly.precipitation_probability[i]]).filter((r) => r[1] >= 50).map((r) => r[0]),
+      dust: a && a.current && typeof a.current.dust === 'number' ? a.current.dust : null
+    };
+  }
+
+  async function refreshWeather(force) {
+    if (wxBusy) return;
+    if (!force && wx && Date.now() - wx.at < 15 * 60000) { renderWeather(); return; }
+    wxBusy = true;
+    if (force) $('wxNote').textContent = 'Updating…';
+    let pos, fallback = false;
     try {
-      lock = await navigator.wakeLock.request('screen');
-      showWake('on');
-      lock.addEventListener('release', () => { if (document.visibilityState === 'visible') showWake('off'); });
+      pos = await locate(false, 10 * 60000);
+      store.set('cockpit.pos.v1', pos);
     } catch (e) {
-      showWake('off');
+      pos = store.get('cockpit.pos.v1', null);
+      if (!pos) { pos = FALLBACK; fallback = true; }
+    }
+    const lat = pos.lat.toFixed(3), lon = pos.lon.toFixed(3);
+    const fUrl = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+      '&current=temperature_2m,apparent_temperature,is_day,weather_code' +
+      '&hourly=precipitation_probability&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset' +
+      '&timezone=auto&forecast_days=2';
+    const aUrl = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon + '&current=dust&timezone=auto';
+    try {
+      const [f, a] = await Promise.all([
+        fetch(fUrl).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
+        fetch(aUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      ]);
+      wx = Object.assign({ at: Date.now(), fallback, pos }, slim(f, a));
+      store.set('cockpit.wx.v1', wx);
+      wxFailed = false;
+    } catch (e) { wxFailed = true; /* keep the last good forecast */ }
+    wxBusy = false;
+    renderWeather();
+  }
+
+  function today() {
+    if (!wx || !wx.daily) return null;
+    const iso = localISODate(new Date());
+    return wx.daily.find((d) => d.date === iso) || null;
+  }
+
+  function renderWeather() {
+    const icon = $('wxIcon');
+    if (!wx) {
+      icon.innerHTML = I.none; $('wxTemp').innerHTML = '--<span class="deg">°</span>';
+      $('wxDesc').textContent = !navigator.onLine ? 'Weather needs a connection' : wxFailed ? 'Weather unavailable right now' : 'Getting weather…';
+      $('wxMore').textContent = '';
+      $('wxNote').textContent = '';
+      renderHint(); return;
+    }
+    const [desc, key] = describe(wx.cur.code, wx.cur.day);
+    const dusty = wx.dust !== null && wx.dust >= DUSTY;
+    icon.innerHTML = I[dusty ? 'dust' : key];
+    $('wxTemp').innerHTML = Math.round(wx.cur.t) + '<span class="deg">°</span>';
+    $('wxDesc').textContent = dusty ? 'Dusty' : desc;
+    const t = today();
+    const age = Date.now() - wx.at;
+    let more = t ? 'H ' + Math.round(t.max) + '°  L ' + Math.round(t.min) + '°' : '';
+    if (age > 60 * 60000) more = 'Updated ' + hhmm(new Date(wx.at));
+    else if (wx.fallback) more = FALLBACK.label + (more ? ', ' + more : '');
+    $('wxMore').textContent = more;
+    $('wxNote').textContent = (wx.fallback ? 'Location is off, so this is Al Qatif. ' : 'Follows your location. ') + 'Updated ' + hhmm(new Date(wx.at)) + '.';
+    renderHint();
+  }
+
+  /* Sunrise and sunset, worked out on the phone when no forecast is stored for today */
+  function solar(lat, lon, date, rising) {
+    const rad = Math.PI / 180;
+    const start = new Date(date.getFullYear(), 0, 0);
+    const N = Math.floor((date - start) / 864e5);
+    const lngHour = lon / 15;
+    const t = N + ((rising ? 6 : 18) - lngHour) / 24;
+    const M = 0.9856 * t - 3.289;
+    let L = (M + 1.916 * Math.sin(M * rad) + 0.020 * Math.sin(2 * M * rad) + 282.634) % 360;
+    let RA = (Math.atan(0.91764 * Math.tan(L * rad)) / rad + 360) % 360;
+    RA = (RA + (Math.floor(L / 90) * 90 - Math.floor(RA / 90) * 90)) / 15;
+    const sinDec = 0.39782 * Math.sin(L * rad), cosDec = Math.cos(Math.asin(sinDec));
+    const cosH = (Math.cos(90.833 * rad) - sinDec * Math.sin(lat * rad)) / (cosDec * Math.cos(lat * rad));
+    if (cosH > 1 || cosH < -1) return null;
+    const H = (rising ? 360 - Math.acos(cosH) / rad : Math.acos(cosH) / rad) / 15;
+    const UT = ((H + RA - 0.06571 * t - 6.622 - lngHour) % 24 + 24) % 24;
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) + UT * 3600e3);
+    return d;
+  }
+  function sunTimes(now) {
+    const t = today();
+    if (t) return { rise: new Date(t.rise), set: new Date(t.set) };
+    const p = store.get('cockpit.pos.v1', FALLBACK);
+    return { rise: solar(p.lat, p.lon, now, true), set: solar(p.lat, p.lon, now, false) };
+  }
+
+  /* The one line under the weather: the most useful thing to know right now */
+  function renderHint() {
+    const now = new Date();
+    let h = null;
+    if (wx && Date.now() - wx.at < 3 * 3600e3) {
+      const soon = (wx.rain || []).map((s) => new Date(s)).find((d) => d > now - 30 * 60000 && d - now <= 3 * 3600e3);
+      if (wx.dust !== null && wx.dust >= DUSTY) h = { i: 'dust', text: 'Dusty air outside. Drive with care', alert: true };
+      else if (soon) h = { i: 'rain', text: soon <= now ? 'Rain likely now' : 'Rain likely around ' + hhmm(soon), alert: true };
+    }
+    if (!h) {
+      const s = sunTimes(now);
+      const toSet = s.set ? (s.set - now) / 60000 : -1;
+      if (toSet > 0 && toSet <= 90) h = { i: 'sunset', text: toSet < 1.5 ? 'Sunset now' : 'Sunset in ' + Math.round(toSet) + ' min' };
+      else if (wx && wx.cur.feels >= 40) h = { i: 'heat', text: 'Feels like ' + Math.round(wx.cur.feels) + '° outside', alert: wx.cur.feels >= 46 };
+      else if (s.rise && now.getHours() < 5) h = { i: 'sunrise', text: 'Sunrise at ' + hhmm(s.rise) };
+      else if (toSet > 90 && s.set) h = { i: 'sunset', text: 'Sunset at ' + hhmm(s.set) };
+      else if (wx) h = { i: 'heat', text: 'Feels like ' + Math.round(wx.cur.feels) + '°' };
+    }
+    const el = $('hint');
+    if (!h) { el.hidden = true; return; }
+    el.hidden = false;
+    el.classList.toggle('alert', !!h.alert);
+    $('hintIcon').innerHTML = HI[h.i];
+    $('hintText').textContent = h.text;
+  }
+
+  /* ---------- Places (saved on this phone only) ---------- */
+  const DEFAULT_PLACES = ['الشقة', 'Work'];
+  let places = store.get('cockpit.places.v1', []);
+  for (let i = 0; i < 2; i++) places[i] = Object.assign({ name: DEFAULT_PLACES[i], dest: '' }, places[i] || {});
+  const drivingUrl = (p) => 'comgooglemaps://?daddr=' + (p.kind === 'coords' ? p.dest : encodeURIComponent(p.dest)) + '&directionsmode=driving';
+
+  function renderPlaces() {
+    document.querySelectorAll('.place').forEach((el) => {
+      const p = places[+el.dataset.slot];
+      const saved = !!p.dest;
+      el.classList.toggle('idle', !saved);
+      el.querySelector('.name').textContent = p.name || DEFAULT_PLACES[+el.dataset.slot];
+      el.querySelector('.act').textContent = saved ? 'Start route' : 'Tap to set';
+      el.setAttribute('href', saved ? drivingUrl(p) : '#');
+      el.setAttribute('aria-label', saved ? 'Directions to ' + p.name + '. Hold to change.' : 'Set up ' + p.name);
+    });
+  }
+  let editingPlace = 0, pendingSpot = '';
+  function placeNote(msg, kind) { const n = $('placeNote'); n.textContent = msg; n.className = 'note' + (kind ? ' ' + kind : ''); }
+  function openPlace(slot) {
+    editingPlace = slot;
+    const p = places[slot];
+    $('placeTitle').textContent = p.dest ? 'Change place' : 'Set up place';
+    $('placeName').value = p.name || DEFAULT_PLACES[slot];
+    $('placeAddr').value = p.kind === 'text' ? p.dest : '';
+    pendingSpot = p.kind === 'coords' ? p.dest : '';
+    placeNote(pendingSpot ? 'Saved spot: ' + pendingSpot : "Use this while you're parked there.", pendingSpot ? 'ok' : '');
+    $('placeRemove').hidden = !p.dest;
+    $('placeTip').hidden = !!p.dest;
+    openSheet('placeSheet');
+  }
+  document.querySelectorAll('.place').forEach((el) => {
+    const slot = +el.dataset.slot;
+    onHold(el, 550, () => openPlace(slot));
+    el.addEventListener('click', (e) => {
+      if (swallowIfHeld(el, e)) return;
+      if (!places[slot].dest) { e.preventDefault(); openPlace(slot); }
+    });
+  });
+  $('placeHere').addEventListener('click', async () => {
+    placeNote('Finding your location…');
+    try {
+      const p = await locate(true, 0);
+      pendingSpot = p.lat.toFixed(5) + ',' + p.lon.toFixed(5);
+      $('placeAddr').value = '';
+      placeNote('Got this spot. Tap Save place to keep it.', 'ok');
+    } catch (err) { placeNote(locError(err) + ' Or type an address.', 'err'); }
+  });
+  $('placeAddr').addEventListener('input', () => {
+    if ($('placeAddr').value.trim() && pendingSpot) { pendingSpot = ''; placeNote("Use this while you're parked there."); }
+  });
+  $('placeForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('placeName').value.trim() || DEFAULT_PLACES[editingPlace];
+    const addr = $('placeAddr').value.trim();
+    if (addr) places[editingPlace] = { name, dest: addr, kind: 'text' };
+    else if (pendingSpot) places[editingPlace] = { name, dest: pendingSpot, kind: 'coords' };
+    else { placeNote('Add your current location or an address first.', 'err'); return; }
+    store.set('cockpit.places.v1', places); renderPlaces(); closeSheets();
+  });
+  $('placeRemove').addEventListener('click', () => {
+    places[editingPlace] = { name: places[editingPlace].name || DEFAULT_PLACES[editingPlace], dest: '' };
+    store.set('cockpit.places.v1', places); renderPlaces(); closeSheets();
+  });
+
+  /* ---------- Parked car ---------- */
+  let park = store.get('cockpit.park.v1', null);
+  const walkUrl = (s) => 'comgooglemaps://?daddr=' + s.lat.toFixed(6) + ',' + s.lon.toFixed(6) + '&directionsmode=walking';
+  function parkedLabel(s) {
+    const d = new Date(s.at), now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    return 'Parked ' + (sameDay ? 'at ' + hhmm(d) : dateFmt.format(d) + ', ' + hhmm(d));
+  }
+  function renderPark(state) {
+    const el = $('park');
+    el.classList.remove('busy', 'failed');
+    el.classList.toggle('idle', !park);
+    if (state === 'busy') { el.classList.add('busy'); $('parkAct').textContent = 'Saving spot…'; return; }
+    if (state && state.error) { el.classList.add('failed'); $('parkAct').textContent = state.error; return; }
+    $('parkStamp').hidden = !park;
+    if (park) $('parkStamp').textContent = hhmm(new Date(park.at));
+    $('parkAct').textContent = park ? 'Walk back' : 'Save spot';
+    el.setAttribute('href', park ? walkUrl(park) : '#');
+    el.setAttribute('aria-label', park ? 'Walk back to your car. Hold for options.' : 'Save where you parked');
+    // Portrait finder
+    $('pCard').hidden = !park;
+    if (park) { $('pMeta').textContent = parkedLabel(park); $('pWalk').setAttribute('href', walkUrl(park)); }
+  }
+  async function saveSpot() {
+    renderPark('busy');
+    try {
+      const p = await locate(true, 0);
+      park = { lat: p.lat, lon: p.lon, at: Date.now() };
+      store.set('cockpit.park.v1', park);
+      renderPark();
+    } catch (err) {
+      renderPark({ error: err && err.code === 1 ? 'Location blocked' : 'No location, try again' });
+      setTimeout(() => renderPark(), 3500);
     }
   }
-  // iOS releases the lock when you leave the app; re-acquire on return and on any tap.
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') { tickClock(); tickTrip(); requestLock(); }
+  function openParkSheet() {
+    $('parkNote').textContent = parkedLabel(park) + '.';
+    $('parkWalk').setAttribute('href', walkUrl(park));
+    openSheet('parkSheet');
+  }
+  onHold($('park'), 550, () => { if (park) openParkSheet(); else saveSpot(); });
+  $('park').addEventListener('click', (e) => {
+    if (swallowIfHeld($('park'), e)) return;
+    if (!park) { e.preventDefault(); saveSpot(); }
   });
+  $('parkHere').addEventListener('click', () => { closeSheets(); saveSpot(); });
+  $('parkClear').addEventListener('click', () => { park = null; store.set('cockpit.park.v1', null); renderPark(); closeSheets(); });
+  $('parkWalk').addEventListener('click', () => setTimeout(closeSheets, 300));
+
+  /* ---------- Favourites ---------- */
+  const TINTS = ['#2f6fe0', '#6a5bd6', '#1f97a3'];
+  let people = store.get('cockpit.people.v1', []);
+  function normPhone(raw) {
+    let s = String(raw || '').replace(/[^\d+]/g, '');
+    if (s.startsWith('00')) s = '+' + s.slice(2);
+    if (/^05\d{8}$/.test(s)) s = '+966' + s.slice(1);
+    else if (/^5\d{8}$/.test(s)) s = '+966' + s;
+    else if (/^966\d{9}$/.test(s)) s = '+' + s;
+    return s;
+  }
+  const showPhone = (s) => /^\+9665\d{8}$/.test(s) ? s.replace(/^\+966(\d{2})(\d{3})(\d{4})$/, '+966 $1 $2 $3') : s;
+  const initial = (name) => (Array.from((name || '?').trim())[0] || '?').toUpperCase();
+  function renderPeople() {
+    const box = $('people');
+    box.innerHTML = '';
+    people.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'glass person';
+      b.setAttribute('aria-label', 'Call or WhatsApp ' + p.name + '. Hold to edit.');
+      b.innerHTML = '<span class="avatar"></span><span class="pname" dir="auto"></span>';
+      b.querySelector('.avatar').textContent = initial(p.name);
+      b.querySelector('.avatar').style.setProperty('--tint', TINTS[i % TINTS.length]);
+      b.querySelector('.pname').textContent = p.name;
+      onHold(b, 550, () => openPersonEdit(i));
+      b.addEventListener('click', (e) => { if (swallowIfHeld(b, e)) return; openPerson(i); });
+      box.appendChild(b);
+    });
+    if (people.length < 3) {
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'glass person add';
+      add.style.gridColumn = 'span ' + (3 - people.length);
+      add.innerHTML = '<span class="avatar">+</span><span class="pname">' + (people.length === 2 ? 'Add' : 'Add favourite') + '</span>' +
+        (people.length ? '' : '<span class="padd">Call or WhatsApp in one tap</span>');
+      add.addEventListener('click', () => openPersonEdit(-1));
+      box.appendChild(add);
+    }
+  }
+  let personIdx = -1;
+  function openPerson(i) {
+    personIdx = i;
+    const p = people[i];
+    const av = $('pvAvatar');
+    av.textContent = initial(p.name); av.style.setProperty('--tint', TINTS[i % TINTS.length]);
+    $('pvName').textContent = p.name;
+    $('pvPhone').textContent = showPhone(p.phone);
+    $('pvCall').setAttribute('href', 'tel:' + p.phone);
+    $('pvWa').setAttribute('href', 'whatsapp://send?phone=' + p.phone.replace(/^\+/, ''));
+    openSheet('personSheet');
+  }
+  ['pvCall', 'pvWa'].forEach((id) => $(id).addEventListener('click', () => setTimeout(closeSheets, 300)));
+  $('pvEdit').addEventListener('click', () => openPersonEdit(personIdx));
+  function peNote(msg, kind) { const n = $('peNote'); n.textContent = msg; n.className = 'note' + (kind ? ' ' + kind : ''); }
+  function openPersonEdit(i) {
+    personIdx = i;
+    const p = i >= 0 ? people[i] : { name: '', phone: '' };
+    $('peTitle').textContent = i >= 0 ? 'Edit favourite' : 'Add favourite';
+    $('peName').value = p.name; $('pePhone').value = p.phone;
+    $('peRemove').hidden = i < 0;
+    peNote('Saudi numbers starting with 05 work as typed.');
+    openSheet('personEdit');
+  }
+  $('personForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('peName').value.trim();
+    const phone = normPhone($('pePhone').value);
+    if (!name) { peNote('Add a name first.', 'err'); return; }
+    if (phone.replace(/\D/g, '').length < 8) { peNote('Enter a full mobile number, like 05X XXX XXXX.', 'err'); return; }
+    if (personIdx >= 0) people[personIdx] = { name, phone }; else people.push({ name, phone });
+    store.set('cockpit.people.v1', people); renderPeople(); closeSheets();
+  });
+  $('peRemove').addEventListener('click', () => {
+    people.splice(personIdx, 1); store.set('cockpit.people.v1', people); renderPeople(); closeSheets();
+  });
+
+  /* ---------- Settings ---------- */
+  $('openSettings').addEventListener('click', () => {
+    $('setName').value = userName;
+    renderWeather();
+    openSheet('settingsSheet');
+  });
+  $('wxNow').addEventListener('click', () => refreshWeather(true));
+  $('settingsForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    userName = $('setName').value.trim();
+    store.set('cockpit.name', userName);
+    tick(true); closeSheets();
+  });
+
+  /* ---------- Trip timer (survives app switching; new trip after 30 min away) ---------- */
+  let tripStart = store.get('tripStart', 0);
+  const lastSeen = store.get('lastSeen', 0);
+  function resetTrip() { tripStart = Date.now(); store.set('tripStart', tripStart); tickTrip(); }
+  function tickTrip() {
+    const m = Math.max(0, Math.floor((Date.now() - tripStart) / 60000));
+    $('tripTime').textContent = Math.floor(m / 60) + ':' + pad2(m % 60);
+    store.set('lastSeen', Date.now());
+  }
+  if (!tripStart || Date.now() - lastSeen > 30 * 60000) resetTrip();
+  onHold($('trip'), 800, resetTrip);
+
+  /* ---------- Keep the screen awake ---------- */
+  let lock = null;
+  function showLamp(state) {
+    $('lamp').className = 'chip ' + state;
+    $('lampText').textContent = state === 'on' ? 'Screen on' : state === 'off' ? 'Tap to keep screen on' : 'Screen may sleep';
+  }
+  async function requestLock() {
+    if (!('wakeLock' in navigator)) { showLamp('na'); return; }
+    if (lock && !lock.released) { showLamp('on'); return; }
+    try {
+      lock = await navigator.wakeLock.request('screen');
+      showLamp('on');
+      lock.addEventListener('release', () => { if (document.visibilityState === 'visible') showLamp('off'); });
+    } catch (e) { showLamp('off'); }
+  }
   document.addEventListener('touchend', requestLock, { passive: true });
   document.addEventListener('click', requestLock);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    tick(true); tickTrip(); requestLock(); renderPark();
+    if (!wx || Date.now() - wx.at > 15 * 60000) refreshWeather();
+  });
 
   /* ---------- Start ---------- */
-  tickClock(); tickTrip(); requestLock();
-  setInterval(tickClock, 1000);
+  renderPlaces(); renderPark(); renderPeople(); renderWeather();
+  tick(true); tickTrip(); requestLock();
+  refreshWeather();
+  setInterval(() => tick(false), 1000);
   setInterval(tickTrip, 15000);
-
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }

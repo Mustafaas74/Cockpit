@@ -1,6 +1,13 @@
 // Caches the dashboard so it opens instantly, even with no signal.
-const CACHE = 'cockpit-v1';
-const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/apple-touch-icon.png'];
+// Only Cockpit's own files are cached; weather requests always go to the network.
+const CACHE = 'cockpit-v3';
+const FILES = [
+  './',
+  'index.html',
+  'manifest.webmanifest',
+  'icons/apple-touch-icon.png',
+  'fonts/saira-latin-standard-normal.woff2'
+];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)));
@@ -17,6 +24,7 @@ self.addEventListener('activate', (e) => {
 // Network first (so updates arrive), cached copy when offline.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then((res) => {
