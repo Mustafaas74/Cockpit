@@ -1,14 +1,6 @@
 // Caches the dashboard so it opens instantly, even with no signal.
-const CACHE = 'cockpit-v2';
-const FILES = [
-  './',
-  'index.html',
-  'manifest.webmanifest',
-  'icons/apple-touch-icon.png',
-  'fonts/barlow-latin-500-normal.woff2',
-  'fonts/barlow-semi-condensed-latin-500-normal.woff2',
-  'fonts/barlow-semi-condensed-latin-600-normal.woff2'
-];
+const CACHE = 'cockpit-v1';
+const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)));
