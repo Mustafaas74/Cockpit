@@ -1,12 +1,14 @@
 // Caches the dashboard so it opens instantly, even with no signal.
 // Only Cockpit's own files are cached; weather requests always go to the network.
-const CACHE = 'cockpit-v3';
+const CACHE = 'cockpit-v4';
 const FILES = [
   './',
   'index.html',
   'manifest.webmanifest',
   'icons/apple-touch-icon.png',
-  'fonts/saira-latin-standard-normal.woff2'
+  'fonts/oxanium-latin-wght-normal.woff2',
+  'splash/launch-1179x2556.png',
+  'splash/launch-2556x1179.png'
 ];
 
 self.addEventListener('install', (e) => {
